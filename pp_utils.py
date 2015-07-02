@@ -62,30 +62,51 @@ def minmax(v):
 
 import datetime
 class TimedBlock(object):
-    """ A class with contextmanager behaviour, to time a block of statements. """
-    
-    def __init(self):
+    """ A class with contextmanager behaviour, to time a block of statements. 
+    New line
+    """
+
+    def __init__(self, action=None):
         """ Create contextmanager object, which after use contains the elapsed time result. 
-        
+
             Usage:
               with TimedBlock() as t:
                   <statements ...
                   ...
                   >
               time_taken = t.seconds()
+
+            Note: can use "action" as :
+             * True : print standard message 
+             * string : print custom message : string.format(seconds)
+             * callable : call(self).
+
         """
         self.start_datetime = None
         self.elapsed_deltatime = None
-    
+        if action is None:
+            print_call = None
+        elif hasattr(action, '__call__'):
+            print_call = action
+        else:
+            if not isinstance(action, basestring):
+                action = 'Time taken : {:12.6f} seconds'
+            def _inner_print(self):
+                print action.format(self.seconds())
+            print_call = _inner_print
+        self.print_call = print_call
+
     def __enter__(self):
         self.start_datetime = datetime.datetime.now()
         return self
-    
+
     def __exit__(self, e1, e2, e3):
         self.end_datetime = datetime.datetime.now()
         self.elapsed_deltatime = self.end_datetime - self.start_datetime
         self._seconds = self.elapsed_deltatime.total_seconds()
-    
+        if self.print_call is not None:
+            self.print_call(self)
+
     def seconds(self):
         """ Our elapsed time in seconds. """ 
         return self._seconds
