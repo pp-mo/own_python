@@ -14,7 +14,7 @@ def choose_between(relprobs):
     # return a random index 0..len(relprobs)-1, weighted choice
     return np.count_nonzero(uniform() > levels)
 
-def test_patch():
+def check_patch():
     # layout in X/Y
     # [0 1]
     # [2 3]
@@ -26,7 +26,7 @@ def test_patch():
     mm *= 1.0 / np.sum(mm)
     return mm
 
-mm = test_patch()
+mm = check_patch()
 # [0 1]
 # [2 3]
 
@@ -58,9 +58,9 @@ if do_one_zero:
     mm[1, 1, 1, 1] = 1.0
 
 mm = mm * 1.0 / np.sum(mm)
-print 'matrix:'
-print mm * 100.0
-print
+print('matrix:')
+print(mm * 100.0)
+print('')
 
 class OutsideArrayException(Exception):
     pass
@@ -72,18 +72,23 @@ def fill_at_patch(bb, ix, iy):
     patch = bb[iy:iy+2, ix:ix+2]
 
     if debug:
-        print 'At: y={} x={}'.format(iy, ix)
+        print( 'At: y={} x={}'.format(iy, ix) )
         def sho(p):
             return ' -' if p is np.ma.masked else '{:02d}'.format(p)
-        print 'bb before ='
-        print bb
+        print( 'bb before =' )
+        print( bb )
         msg = ('patch before = {:3s} {:3s}\n'
                '               {:3s} {:3s}')
-        print msg.format(*[sho(p) for p in patch.flat])
+        print( msg.format(*[sho(p) for p in patch.flat]) )
 
-    slices = [slice(None) if pt_val is np.ma.masked else pt_val
-              for pt_val in patch.flat]
-    probs = list(mm[slices].flat)
+    slices = tuple(
+        slice(None) if pt_val is np.ma.masked else int(pt_val)
+        for pt_val in patch.flat
+    )
+    try:
+        probs = list(mm[slices].flat)
+    except Exception:
+        arrgh = 1
     n_bits = sum(pt_val is np.ma.masked for pt_val in patch.flat)
     bits = choose_between(probs)
         # yields an (n_bits)-bit number
@@ -96,17 +101,17 @@ def fill_at_patch(bb, ix, iy):
             bit = (bits & (2 ** i_bit)) != 0
             i_bit -= 1
             if debug:
-                print '  [{}] = {}'.format((iy1, ix1), bit)
+                print( '  [{}] = {}'.format((iy1, ix1), bit) )
             patch[iy1, ix1] = bit
             bb[iy+iy1, ix+ix1] = bit
 
     if debug:
-        print 'bb after ='
-        print bb
+        print( 'bb after =' )
+        print( bb )
         msg = ('patch after  = {:3s} {:3s}\n'
                '               {:3s} {:3s}')
-        print msg.format(*[sho(p) for p in patch.flat])
-        print
+        print( msg.format(*[sho(p) for p in patch.flat]) )
+        print('')
 
 def fill_array(hx, hy):
     nx = 1 + 2 * (hx + 1)
@@ -119,7 +124,7 @@ def fill_array(hx, hy):
 #          bb = np.ma.masked_array(np.zeros((ny, nx), dtype=int), mask=True)
 #          fill_at_patch(bb, hx, hy)
 #          if bb[hy, hx+1] == 0 and bb[hy+1, hx+1] == 0:
-#              print seed
+#              print( seed )
 #              return
 #          seed += 1
 
@@ -130,12 +135,12 @@ def fill_array(hx, hy):
         while 1:
             i_step += 1
             if limit_steps and i_step > limit_steps:
-                print '(stop)'
+                print( '(stop)' )
                 break
             x, y = next(steps)
             fill_at_patch(bb, x, y)
-#             print
-#             print bb
+#             print('')
+#             print( bb )
     except OutsideArrayException:
         pass
     return bb[1:-1, 1:-1]
@@ -158,14 +163,14 @@ def spiral_steps(x, y):
         for y in range(y1-1, y0-1, -1):
             yield (x, y)
 
-def test_spiral_steps():
+def check_spiral_steps():
     steps = spiral_steps(5, 5)
     a = np.zeros((10, 10), dtype=int)
     for i_step in range(40):
         x, y = next(steps)
-        print (x, y)
+        print( (x, y) )
         a[y, x] = i_step + 100
-    print a
+    print( a )
 
 def rationalise(mm):
     # average over X and Y reflections
@@ -188,11 +193,12 @@ def check_rational(mm):
         (2, 0, 3, 1),
         (3, 2, 1, 0),
         (1, 3, 0, 2)]
-    print 'RATIONAL check..'
+    print( 'RATIONAL check..' )
     for reorder in reorders:
-        print 'reorder{} : same={}'.format(
+        print( 'reorder{} : same={}'.format(
             reorder,
             np.allclose(mm.transpose(reorder), mm))
+        )
     return mm
 
 ELEMENTS_INFO = [
@@ -206,22 +212,22 @@ ELEMENTS_INFO = [
 ]
 
 def describe_elements():
-    print 'Debug matrix deconstruction elements:'
+    print( 'Debug matrix deconstruction elements:' )
     for name, inds, n_ways in ELEMENTS_INFO:
         mmt = np.zeros((2, 2, 2, 2))
         mmt[inds] = 1.0 * n_ways
         mmt = rationalise(mmt)
-        print 'elem = {}'.format(name)
-        print 100.0 * mmt
-        print
+        print( 'elem = {}'.format(name) )
+        print( 100.0 * mmt )
+        print('')
     
 def deconstruct(mm_in):
     mm = mm_in * 1.0 / np.sum(mm_in)
     def pr(name, keys):
         frac = mm[keys]
         percent = np.round(100.0 * frac, 1)
-        print '  {} = {}'.format(name, percent)
-    print 'Decode:'
+        print( '  {} = {}'.format(name, percent) )
+    print( 'Decode:' )
     for name, inds, _ in ELEMENTS_INFO:
         pr(name, inds)
 
@@ -230,13 +236,13 @@ def deconstruct(mm_in):
     for name, inds, n_ways in ELEMENTS_INFO:
         mm2[inds] = mm[inds] * n_ways
     mm2 = rationalise(mm2)
-#     print 'recons:'
-#     print 100.0 * mm2
+#     print( 'recons:' )
+#     print( 100.0 * mm2 )
     assert np.allclose(mm2, mm_in)
 
 def tryseed(seed, cubing=True):
     global mm
-    print 'seed = ', seed
+    print( 'seed = ', seed )
     np.random.seed(seed)
     import matplotlib.pyplot as plt
     plt.figure(figsize=(16, 8))
@@ -248,9 +254,9 @@ def tryseed(seed, cubing=True):
 #                        10.04062837,   3.5366293 ,   3.5366293 ,  10.21390665]).reshape((2, 2, 2, 2))
         bb = fill_array(30, 20)
 #         check_rational(mm)
-        print
-        print '@', i_plt
-        print mm * 100.0
+        print('')
+        print( '@', i_plt )
+        print( mm * 100.0 )
         deconstruct(mm)
 
         mm = uniform(size=16).reshape((2, 2, 2, 2))
@@ -266,7 +272,7 @@ def tryseed(seed, cubing=True):
 
 
 if __name__ == '__main__':
-    # test_spiral_steps()
+    # check_spiral_steps()
     import datetime
     seed = datetime.datetime.now().microsecond
 
@@ -282,7 +288,7 @@ if __name__ == '__main__':
 #     seed =  296942
 #     seed =  640182
 
-    test_seeds_and_cubings = [
+    example_seeds_and_cubings = [
         (570911, 0),
         (744674, 0),
         (811433, 0),
@@ -291,5 +297,5 @@ if __name__ == '__main__':
         (296942, 1),
         (640182, 1),
     ]
-    for seed, cubing in test_seeds_and_cubings:
+    for seed, cubing in example_seeds_and_cubings:
         tryseed(seed, cubing)
